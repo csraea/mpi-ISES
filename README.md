@@ -27,6 +27,4 @@ The very `EquationSolver.py` itself can be run without toolchain. Requires the f
 
 Example: `python3 EquationSolver.py 2.67 False 1`
 
-The demonstration of _EquationSolver_ is provided below.
-
 
