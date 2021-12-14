@@ -4,10 +4,13 @@ from pprint import pprint
 
 class EquationSolver:
 
-    # Initiates the instance for specific gamma value
+    # Initiates the instance for specific gamma value, creates initial matrix A and vector b according to the task
     def __init__(self, gamma):
 
         sys.setrecursionlimit(10000)
+
+        # set default precision
+        self.precision = 10**-6
         
         # matrix A
         self.a = np.zeros((20, 20), dtype=np.float64)
@@ -19,35 +22,23 @@ class EquationSolver:
         self.b = np.full((20, 1), gamma-2, dtype=np.float64)
         self.b[0], self.b[-1] = gamma - 1, gamma - 1
 
-        # matrix D
-        self.d = np.diag(np.diag(self.a))
-
-        # matrix L
-        self.l = np.tril(self.a, -1)
-
-        # matrix U
-        self.u = self.a - self.d - self.l
-
-        # set default precision
-        self.precision = 10**-6
-
-
     # Sets the calculation method
-    def set_method(self, method, omega = 1):
+    def set_method(self, method, omega=1):
 
-        self.q = self.d if method else (self.d / omega) + self.l
-        self.q_inv = np.linalg.inv(self.q)
-        self.convergent = None
         self.result = None
+        self.convergency = None
         self.iterations = None
+
+        self.q = np.diag(np.diag(self.a)) if method else (np.diag(np.diag(self.a)) / omega) + np.tril(self.a, -1)
+        self.q_inv = np.linalg.inv(self.q)
 
         return self
     
 
-    # Checks if iterative method is convergent and computes the result
+    # Checks if iterative method is convergence and computes the result
     def compute(self):
 
-        if not self.is_convergent():
+        if not self.convergence():
             self.result = []
             self.iterations = 0
         if self.iterations is None:
@@ -57,12 +48,9 @@ class EquationSolver:
 
 
     # Calculates convergence of iterative method
-    def is_convergent(self):
+    def convergence(self):
 
-        if self.convergent is None:                                                         
-            self.convergent = max(abs(np.linalg.eigvals(np.identity(20, dtype=np.float64) - (self.q_inv @ self.a)))) < 1
-
-        return self.convergent
+        return self.convergency if self.convergency is not None else max(abs(np.linalg.eigvals(np.identity(20, dtype=np.float64) - (self.q_inv @ self.a)))) < 1
 
 
     # Calculate with the iterative method
@@ -70,22 +58,16 @@ class EquationSolver:
 
         if xn is None:
             xn = np.zeros((20, 1), np.float64)
-        if self.is_precision_sufficient((self.a @ xn) - self.b):
+        if self.precision_sufficiency((self.a @ xn) - self.b):
             return xn.transpose(), idx
         
-        return self.calculate(self.calc_it(xn), idx + 1)
+        return self.calculate((self.q_inv @ (((self.q - self.a) @ xn) + self.b)), idx + 1)
 
     
     # Checks whether the precision of resuslt is satisfactory
-    def is_precision_sufficient(self, result):
+    def precision_sufficiency(self, r):
 
-        return self.precision > (np.linalg.norm(result) / np.linalg.norm(self.b))
-
-
-    # Calculates single iteration
-    def calc_it(self, xn):
-
-        return (self.q_inv @ (((self.q - self.a) @ xn) + self.b))
+        return self.precision > (np.linalg.norm(r) / np.linalg.norm(self.b))
 
 
 def str2bool(v):
@@ -110,7 +92,7 @@ def main():
 
     # Get information about the convergence of the iteration method
     # Retuens True if the method converges, elsewise returns False
-    print("Method covergence: " + str(es.is_convergent()))
+    print("Method covergence: " + str(es.convergence()))
 
     # Print the number of iterations
     print("Iterations: " + str(iterations))
